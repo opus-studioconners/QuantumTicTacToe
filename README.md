@@ -1,2 +1,2 @@
 # Quantum Tic-Tac-Toe
-Testing
+A simple battle for a complicated future.
