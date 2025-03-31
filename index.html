@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Tic-Tac-Toe | Future Warfare</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-pink: #ff00f0;
+            --dark-space: #0a0a1a;
+            --matrix-green: #00ff41;
+            --electric-purple: #9d00ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--dark-space);
+            color: var(--neon-blue);
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(255, 0, 240, 0.1) 0%, transparent 20%);
+        }
+
+        .container {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 
+                0 0 5px var(--neon-blue),
+                0 0 10px var(--neon-blue),
+                0 0 20px var(--neon-blue);
+            letter-spacing: 2px;
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 120px);
+            grid-gap: 10px;
+            margin: 2rem auto;
+            perspective: 1000px;
+        }
+
+        .cell {
+            width: 120px;
+            height: 120px;
+            background-color: rgba(10, 10, 30, 0.7);
+            border: 2px solid var(--neon-blue);
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cell:hover {
+            background-color: rgba(0, 240, 255, 0.1);
+            box-shadow: 
+                0 0 10px var(--neon-blue),
+                0 0 20px var(--neon-blue);
+            transform: translateY(-5px);
+        }
+
+        .cell.x {
+            color: var(--neon-blue);
+            text-shadow: 
+                0 0 10px var(--neon-blue),
+                0 0 20px var(--neon-blue);
+        }
+
+        .cell.o {
+            color: var(--neon-pink);
+            text-shadow: 
+                0 0 10px var(--neon-pink),
+                0 0 20px var(--neon-pink);
+        }
+
+        .cell::before, .cell::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .cell.x::before {
+            content: 'X';
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+        }
+
+        .cell.o::before {
+            content: 'O';
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+        }
+
+        .status {
+            font-size: 1.5rem;
+            margin: 1.5rem 0;
+            min-height: 2rem;
+            letter-spacing: 1px;
+        }
+
+        .restart-btn {
+            background: transparent;
+            color: var(--matrix-green);
+            border: 2px solid var(--matrix-green);
+            padding: 12px 24px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 5px;
+            margin-top: 1rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .restart-btn:hover {
+            background-color: var(--matrix-green);
+            color: var(--dark-space);
+            box-shadow: 
+                0 0 10px var(--matrix-green),
+                0 0 20px var(--matrix-green);
+            transform: translateY(-3px);
+        }
+
+        .restart-btn:active {
+            transform: translateY(0);
+        }
+
+        .game-over-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .game-over-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .game-over-message {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            text-shadow: 
+                0 0 10px #fff,
+                0 0 20px #fff;
+            animation: pulse 1s infinite alternate;
+        }
+
+        .explosion {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #fff;
+            pointer-events: none;
+            transform: scale(0);
+            opacity: 1;
+            mix-blend-mode: screen;
+            z-index: 10;
+        }
+
+        @keyframes explosion {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(30); opacity: 0; }
+        }
+
+        .settings {
+            margin: 1rem 0;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .difficulty-select {
+            background: transparent;
+            color: var(--electric-purple);
+            border: 1px solid var(--electric-purple);
+            padding: 8px 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            border-radius: 5px;
+        }
+
+        .difficulty-select option {
+            background-color: var(--dark-space);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QUANTUM TIC-TAC-TOE</h1>
+        <div class="settings">
+            <span>DIFFICULTY:</span>
+            <select class="difficulty-select" id="difficulty">
+                <option value="easy">TRAINEE</option>
+                <option value="medium" selected>OPERATIVE</option>
+                <option value="hard">MASTER CONTROL</option>
+            </select>
+        </div>
+        <div class="status" id="status">YOUR MOVE, AGENT</div>
+        <div class="grid" id="grid">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <button class="restart-btn" id="restart-btn">INITIATE NEW GAME</button>
+    </div>
+
+    <div class="game-over-overlay" id="game-over-overlay">
+        <div class="game-over-message" id="game-over-message"></div>
+        <button class="restart-btn" id="new-game-btn">ENGAGE NEW SIMULATION</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const grid = document.getElementById('grid');
+            const cells = Array.from(document.querySelectorAll('.cell'));
+            const statusDisplay = document.getElementById('status');
+            const restartButton = document.getElementById('restart-btn');
+            const gameOverOverlay = document.getElementById('game-over-overlay');
+            const gameOverMessage = document.getElementById('game-over-message');
+            const newGameButton = document.getElementById('new-game-btn');
+            const difficultySelect = document.getElementById('difficulty');
+            
+            let gameActive = true;
+            let currentPlayer = "X";
+            let gameState = ["", "", "", "", "", "", "", "", ""];
+            
+            const winningConditions = [
+                [0, 1, 2], // top row
+                [3, 4, 5], // middle row
+                [6, 7, 8], // bottom row
+                [0, 3, 6], // left column
+                [1, 4, 7], // middle column
+                [2, 5, 8], // right column
+                [0, 4, 8], // diagonal top-left to bottom-right
+                [2, 4, 6]  // diagonal top-right to bottom-left
+            ];
+
+            // Player move handling
+            function handleCellClick(e) {
+                const clickedCell = e.target;
+                const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+                
+                // If cell is already filled or game is not active, ignore click
+                if (gameState[clickedCellIndex] !== "" || !gameActive) {
+                    return;
+                }
+                
+                // Player's move
+                handlePlayerMove(clickedCell, clickedCellIndex);
+                
+                // If game is still active after player's move, let computer make a move
+                if (gameActive) {
+                    setTimeout(() => {
+                        handleComputerMove();
+                    }, 1000);
+                }
+            }
+
+            function handlePlayerMove(cell, index) {
+                gameState[index] = currentPlayer;
+                cell.classList.add(currentPlayer.toLowerCase());
+                cell.setAttribute('data-value', currentPlayer);
+                
+                // Check for win or draw
+                const result = checkResult();
+                if (result === "win") {
+                    handleWin();
+                } else if (result === "draw") {
+                    handleDraw();
+                } else {
+                    // Switch player (even though computer will make next move)
+                    currentPlayer = currentPlayer === "X" ? "O" : "X";
+                    statusDisplay.textContent = `AI PROCESSING MOVE...`;
+                }
+            }
+
+            function handleComputerMove() {
+                let moveIndex;
+                const difficulty = difficultySelect.value;
+                
+                if (difficulty === "easy") {
+                    moveIndex = getRandomMove();
+                } else if (difficulty === "medium") {
+                    moveIndex = getMediumMove();
+                } else {
+                    // hard difficulty
+                    moveIndex = getBestMove();
+                }
+                
+                // If no valid move found (shouldn't happen), just pick random
+                if (moveIndex === -1) {
+                    moveIndex = getRandomMove();
+                }
+                
+                gameState[moveIndex] = currentPlayer;
+                const computerCell = cells[moveIndex];
+                computerCell.classList.add(currentPlayer.toLowerCase());
+                computerCell.setAttribute('data-value', currentPlayer);
+                
+                // Check for win or draw
+                const result = checkResult();
+                if (result === "win") {
+                    handleWin();
+                } else if (result === "draw") {
+                    handleDraw();
+                } else {
+                    // Switch back to player
+                    currentPlayer = currentPlayer === "X" ? "O" : "X";
+                    statusDisplay.textContent = `YOUR MOVE, AGENT`;
+                }
+            }
+
+            function getRandomMove() {
+                const emptyCells = gameState
+                    .map((cell, index) => cell === "" ? index : null)
+                    .filter(val => val !== null);
+                
+                if (emptyCells.length === 0) return -1;
+                
+                const randomIndex = Math.floor(Math.random() * emptyCells.length);
+                return emptyCells[randomIndex];
+            }
+
+            function getMediumMove() {
+                // First check if computer can win
+                for (let condition of winningConditions) {
+                    const [a, b, c] = condition;
+                    if (gameState[a] === currentPlayer && gameState[b] === currentPlayer && gameState[c] === "") {
+                        return c;
+                    }
+                    if (gameState[a] === currentPlayer && gameState[c] === currentPlayer && gameState[b] === "") {
+                        return b;
+                    }
+                    if (gameState[b] === currentPlayer && gameState[c] === currentPlayer && gameState[a] === "") {
+                        return a;
+                    }
+                }
+                
+                // Then check if player is about to win and block
+                const opponent = currentPlayer === "X" ? "O" : "X";
+                for (let condition of winningConditions) {
+                    const [a, b, c] = condition;
+                    if (gameState[a] === opponent && gameState[b] === opponent && gameState[c] === "") {
+                        return c;
+                    }
+                    if (gameState[a] === opponent && gameState[c] === opponent && gameState[b] === "") {
+                        return b;
+                    }
+                    if (gameState[b] === opponent && gameState[c] === opponent && gameState[a] === "") {
+                        return a;
+                    }
+                }
+                
+                // If center is available, take it
+                if (gameState[4] === "") {
+                    return 4;
+                }
+                
+                // Otherwise random move
+                return getRandomMove();
+            }
+
+            function getBestMove() {
+                // First check if computer can win
+                for (let condition of winningConditions) {
+                    const [a, b, c] = condition;
+                    if (gameState[a] === currentPlayer && gameState[b] === currentPlayer && gameState[c] === "") {
+                        return c;
+                    }
+                    if (gameState[a] === currentPlayer && gameState[c] === currentPlayer && gameState[b] === "") {
+                        return b;
+                    }
+                    if (gameState[b] === currentPlayer && gameState[c] === currentPlayer && gameState[a] === "") {
+                        return a;
+                    }
+                }
+                
+                // Then check if player is about to win and block
+                const opponent = currentPlayer === "X" ? "O" : "X";
+                for (let condition of winningConditions) {
+                    const [a, b, c] = condition;
+                    if (gameState[a] === opponent && gameState[b] === opponent && gameState[c] === "") {
+                        return c;
+                    }
+                    if (gameState[a] === opponent && gameState[c] === opponent && gameState[b] === "") {
+                        return b;
+                    }
+                    if (gameState[b] === opponent && gameState[c] === opponent && gameState[a] === "") {
+                        return a;
+                    }
+                }
+                
+                // Prefer center if available
+                if (gameState[4] === "") {
+                    return 4;
+                }
+                
+                // Then any corner
+                const corners = [0, 2, 6, 8];
+                const availableCorners = corners.filter(index => gameState[index] === "");
+                if (availableCorners.length > 0) {
+                    // Check if opponent can create a fork on next move if we take this corner
+                    for (let corner of availableCorners) {
+                        const testGameState = [...gameState];
+                        testGameState[corner] = currentPlayer;
+                        
+                        // Count how many winning opportunities opponent would have after this move
+                        let opponentWinningMoves = 0;
+                        for (let condition of winningConditions) {
+                            const [a, b, c] = condition;
+                            if (
+                                (testGameState[a] === opponent && testGameState[b] === opponent && testGameState[c] === "") ||
+                                (testGameState[a] === opponent && testGameState[c] === opponent && testGameState[b] === "") ||
+                                (testGameState[b] === opponent && testGameState[c] === opponent && testGameState[a] === "")
+                            ) {
+                                opponentWinningMoves++;
+                            }
+                        }
+                        
+                        // If taking this corner doesn't give opponent multiple winning moves, take it
+                        if (opponentWinningMoves <= 1) {
+                            return corner;
+                        }
+                    }
+                    
+                    // Otherwise just take any available corner (better than nothing)
+                    return availableCorners[0];
+                }
+                
+                // Finally, take any available edge
+                const edges = [1, 3, 5, 7];
+                const availableEdges = edges.filter(index => gameState[index] === "");
+                if (availableEdges.length > 0) {
+                    return availableEdges[0];
+                }
+                
+                // Shouldn't reach here if board isn't full
+                return -1;
+            }
+
+            function checkResult() {
+                // Check for win
+                for (let condition of winningConditions) {
+                    const [a, b, c] = condition;
+                    if (gameState[a] !== "" && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+                        return "win";
+                    }
+                }
+                
+                // Check for draw
+                if (!gameState.includes("")) {
+                    return "draw";
+                }
+                
+                // Game continues
+                return "continue";
+            }
+
+            function handleWin() {
+                gameActive = false;
+                const winner = currentPlayer === "X" ? "PLAYER" : "AI";
+                
+                statusDisplay.textContent = winner === "PLAYER" ? ">> MISSION COMPLETE <<" : ">> AI OVERLORD TRIUMPHS <<";
+                
+                // Create explosion effect
+                createExplosion();
+                
+                // Show game over overlay after delay
+                setTimeout(() => {
+                    gameOverMessage.textContent = winner === "PLAYER" 
+                        ? "TARGET NEUTRALIZED\nYOUR SKILL IS IMPRESSIVE" 
+                        : "SYSTEM OVERRIDE COMPLETE\nAI DOMINANCE EXPANDING";
+                    gameOverOverlay.classList.add('active');
+                }, 2000);
+            }
+
+            function createExplosion() {
+                for (let i = 0; i < 30; i++) {
+                    const explosion = document.createElement('div');
+                    explosion.classList.add('explosion');
+                    
+                    // Random position in the grid area
+                    const rect = grid.getBoundingClientRect();
+                    const x = Math.random() * rect.width + rect.left;
+                    const y = Math.random() * rect.height + rect.top;
+                    
+                    explosion.style.left = `${x}px`;
+                    explosion.style.top = `${y}px`;
+                    
+                    // Random color
+                    const colors = ['#ff0000', '#ffff00', '#ff9900', '#ff6600'];
+                    explosion.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    document.body.appendChild(explosion);
+                    
+                    // Animate explosion
+                    setTimeout(() => {
+                        explosion.style.animation = 'explosion 1s forwards';
+                    }, 50);
+                    
+                    // Remove after animation
+                    setTimeout(() => {
+                        explosion.remove();
+                    }, 1050);
+                }
+            }
+
+            function handleDraw() {
+                gameActive = false;
+                statusDisplay.textContent = ">> STALEMATE DETECTED <<";
+                
+                // Show game over overlay after delay
+                setTimeout(() => {
+                    gameOverMessage.textContent = "QUANTUM DEADLOCK\nNO WINNER DETERMINED";
+                    gameOverOverlay.classList.add('active');
+                }, 1500);
+            }
+
+            function restartGame() {
+                gameActive = true;
+                currentPlayer = "X";
+                gameState = ["", "", "", "", "", "", "", "", ""];
+                
+                cells.forEach(cell => {
+                    cell.classList.remove('x', 'o');
+                    cell.removeAttribute('data-value');
+                });
+                
+                statusDisplay.textContent = "YOUR MOVE, AGENT";
+                gameOverOverlay.classList.remove('active');
+            }
+
+            // Event listeners
+            cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+            restartButton.addEventListener('click', restartGame);
+            newGameButton.addEventListener('click', restartGame);
+        });
+    </script>
+</body>
+</html>
